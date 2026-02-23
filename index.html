@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Evolution of Object Detection</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&family=Outfit:wght@400;600;700;900&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', 'Outfit', sans-serif; background: #faf9f6; color: #333; min-height: 100vh; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideIn { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
+
+  .header { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%); padding: 32px 24px 24px; text-align: center; position: relative; overflow: hidden; }
+  .header::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 20% 50%, rgba(52,152,219,0.15) 0%, transparent 50%), radial-gradient(circle at 80% 50%, rgba(231,76,60,0.1) 0%, transparent 50%); }
+  .header > * { position: relative; z-index: 1; }
+  .header-sub { font-size: 14px; color: rgba(255,255,255,0.5); letter-spacing: 3px; margin-bottom: 8px; font-family: 'DM Mono', monospace; }
+  .header h1 { font-family: 'Outfit', sans-serif; font-size: 28px; color: #fff; font-weight: 900; line-height: 1.3; }
+  .header p { margin-top: 8px; color: rgba(255,255,255,0.6); font-size: 14px; }
+
+  .container { max-width: 680px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  .section-nav { display: flex; justify-content: center; gap: 4px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .section-btn { padding: 10px 20px; border-radius: 10px; border: 2px solid #e0e0e0; background: #fff; color: #555; font-weight: 700; cursor: pointer; font-size: 14px; transition: all 0.2s; font-family: inherit; }
+  .section-btn.active { border-color: #333; background: #333; color: #fff; }
+  .section-btn:hover:not(.active) { border-color: #aaa; }
+
+  .tab-bar { display: flex; gap: 0; margin-bottom: 20px; background: #fff; border-radius: 14px; padding: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow-x: auto; }
+  .tab-btn { flex: 1; padding: 12px 8px; border-radius: 10px; border: none; background: transparent; color: #888; font-weight: 700; cursor: pointer; font-size: 13px; transition: all 0.25s; min-width: 0; font-family: inherit; }
+  .tab-btn:hover { color: #555; }
+  .tab-btn .icon { font-size: 20px; margin-bottom: 2px; }
+  .tab-btn .year { font-size: 10px; opacity: 0.8; }
+
+  .card { background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); animation: fadeIn 0.35s; }
+
+  .scene { position: relative; width: 280px; height: 220px; background: linear-gradient(135deg,#f8f4e8,#e8e0d0); border-radius: 12px; overflow: hidden; border: 2px solid #ccc; box-shadow: inset 0 2px 8px rgba(0,0,0,0.08); }
+
+  .action-btn { padding: 8px 20px; border-radius: 8px; border: none; color: #fff; font-weight: 700; cursor: pointer; font-size: 14px; font-family: inherit; transition: opacity 0.2s, transform 0.1s; }
+  .action-btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .action-btn:disabled { background: #ccc !important; cursor: default; transform: none; }
+
+  .race-row { display: flex; align-items: center; gap: 10px; }
+  .race-label { width: 110px; font-size: 12px; font-weight: 600; text-align: right; flex-shrink: 0; font-family: 'DM Mono', monospace; }
+  .race-track { flex: 1; height: 28px; background: #f0f0f0; border-radius: 14px; overflow: hidden; position: relative; }
+  .race-fill { height: 100%; border-radius: 14px; transition: width 0.05s linear; }
+
+  .quiz-opt { padding: 10px 16px; border-radius: 10px; border: 2px solid #e0e0e0; background: #f5f5f5; color: #333; font-weight: 600; cursor: pointer; font-size: 14px; text-align: left; transition: all 0.2s; font-family: inherit; width: 100%; display: block; }
+  .quiz-opt:hover:not(.locked) { border-color: #aaa; background: #eee; }
+
+  .next-evo-btn { padding: 10px 24px; border-radius: 10px; background: #fff; font-weight: 700; cursor: pointer; font-size: 14px; font-family: inherit; transition: all 0.2s; }
+  .next-evo-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+  .hidden { display: none !important; }
+
+  .mini-scene { position: relative; border-radius: 10px; overflow: hidden; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-sub">INTERACTIVE GUIDE</div>
+  <h1>Evolution of Object Detection</h1>
+  <p>From brute force to fully neural &mdash; four algorithms compared interactively</p>
+</div>
+
+<div class="section-nav">
+  <button class="section-btn active" onclick="showSection('learn')">📖 Step-by-Step</button>
+  <button class="section-btn" onclick="showSection('race')">🏎️ Speed Race</button>
+  <button class="section-btn" onclick="showSection('quiz')">🧪 Quiz</button>
+</div>
+
+<div class="container">
+  <!-- LEARN -->
+  <div id="sec-learn">
+    <div class="tab-bar" id="tabBar"></div>
+    <div id="algoCard"></div>
+    <div id="nextEvo" style="text-align:center;padding:16px 0"></div>
+  </div>
+
+  <!-- RACE -->
+  <div id="sec-race" class="hidden">
+    <div class="card" style="padding:28px;display:flex;flex-direction:column;align-items:center;gap:20px">
+      <div style="text-align:center">
+        <h2 style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:900;color:#222">🏎️ Inference Speed Showdown</h2>
+        <p style="margin-top:6px;font-size:14px;color:#888">Same image, four algorithms &mdash; who finishes first?</p>
+      </div>
+      <div id="raceArea" style="display:flex;flex-direction:column;gap:12px;width:100%;max-width:500px"></div>
+      <button class="action-btn" style="background:#333" onclick="startRace()" id="raceBtn">🏁 Start Race!</button>
+      <div style="background:#f8f8f8;border-radius:12px;padding:16px;width:100%;max-width:500px">
+        <div style="font-size:12px;color:#888;font-weight:700;margin-bottom:8px;font-family:'DM Mono',monospace">📊 Key Takeaway</div>
+        <div style="font-size:14px;color:#444;line-height:1.7">
+          <strong style="color:#3498DB">Faster R-CNN</strong> is roughly <strong>500&times;</strong> faster than
+          <strong style="color:#E74C3C">Sliding Window</strong> and about <strong>200&times;</strong> faster than
+          <strong style="color:#E67E22">R-CNN</strong>.
+          The key insight: the more steps you integrate into the neural network, the faster it gets!
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QUIZ -->
+  <div id="sec-quiz" class="hidden">
+    <div class="card" style="padding:28px;display:flex;flex-direction:column;align-items:center">
+      <h2 style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:900;color:#222;margin-bottom:20px">🧪 Test Your Understanding</h2>
+      <div id="quizArea" style="width:100%;max-width:480px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════
+   DATA
+   ═══════════════════════════════════════════ */
+const ALGOS = [
+  {
+    id:"sliding", name:"Sliding Window", year:"Classic", speed:"~100s+", color:"#E74C3C", accent:"#FADBD8",
+    icon:"🪟", tagline:"The brute-force approach: check every single position",
+    analogy:"Imagine searching for one word in a 500-page book by reading every single letter, one at a time.",
+    steps:[
+      "Place a small window on the top-left corner of the image",
+      "Slide it across every position, left to right, top to bottom",
+      "At each position, crop the region and run it through a CNN classifier",
+      "If the classifier says 'object found,' record that location"
+    ],
+    pros:["Conceptually simple and easy to understand"],
+    cons:["Must check thousands of windows","Each window requires a separate CNN pass","Far too slow for any practical use"],
+    cnnRuns:"~10,000+", regionMethod:"Brute-force (every position)", trainable:"No"
+  },
+  {
+    id:"rcnn", name:"R-CNN", year:"2014", speed:"~40–50s", color:"#E67E22", accent:"#FDEBD0",
+    icon:"🔍", tagline:"Smarter: only look at promising regions first",
+    analogy:"Like using the table of contents to find ~20 relevant pages, then carefully reading each one.",
+    steps:[
+      "Use Selective Search (a traditional algorithm) to propose ~2,000 candidate regions",
+      "Crop each candidate region from the original image",
+      "Feed each crop through the CNN separately to extract features",
+      "Classify each region using an SVM classifier"
+    ],
+    pros:["Much smarter than Sliding Window","Only examines likely regions"],
+    cons:["2,000 regions × 1 CNN pass each = still very slow","Takes ~40 seconds per image"],
+    cnnRuns:"~2,000", regionMethod:"Selective Search (traditional)", trainable:"No (multi-stage)"
+  },
+  {
+    id:"fast", name:"Fast R-CNN", year:"2015", speed:"~2s", color:"#2ECC71", accent:"#D5F5E3",
+    icon:"⚡", tagline:"Key breakthrough: run the CNN only ONCE!",
+    analogy:"Like scanning the entire book into a searchable PDF first, then looking up any keyword instantly.",
+    steps:[
+      "Pass the entire image through the CNN once → get a feature map",
+      "Find candidate regions on the feature map (not the original image!)",
+      "Use ROI Pooling to extract features for each region",
+      "Classify + refine bounding box coordinates"
+    ],
+    pros:["CNN runs only once (massive speedup!)","End-to-end trainable"],
+    cons:["Region proposals still rely on traditional Selective Search","That step becomes the new bottleneck"],
+    cnnRuns:"1", regionMethod:"Selective Search (traditional)", trainable:"Yes"
+  },
+  {
+    id:"faster", name:"Faster R-CNN", year:"2015", speed:"~0.2s", color:"#3498DB", accent:"#D6EAF8",
+    icon:"🚀", tagline:"Everything is a neural network now!",
+    analogy:"The AI builds the search index for you automatically — fully end-to-end, no manual steps!",
+    steps:[
+      "Pass the entire image through the CNN → feature map",
+      "A Region Proposal Network (RPN) finds candidate regions on the feature map",
+      "ROI Pooling extracts features for each proposed region",
+      "Classify each region + refine bounding box coordinates"
+    ],
+    pros:["Fully end-to-end neural network","RPN replaces all traditional methods","~200× faster than R-CNN"],
+    cons:["Still computationally heavy for very large images"],
+    cnnRuns:"1", regionMethod:"RPN (neural network! 🧠)", trainable:"Yes"
+  }
+];
+
+const OBJECTS = [
+  {x:8,y:18,w:22,h:50,label:"Person",emoji:"🧍"},
+  {x:40,y:30,w:30,h:30,label:"Car",emoji:"🚗"},
+  {x:75,y:10,w:18,h:22,label:"Bird",emoji:"🐦"}
+];
+
+const QUIZ_DATA = [
+  {q:"Which algorithm was the first to use a neural network for generating region proposals?", opts:["Sliding Window","R-CNN","Fast R-CNN","Faster R-CNN"], ans:3},
+  {q:"How many times does R-CNN run the CNN for a single image?", opts:["1 time","About 100 times","About 2,000 times","About 10,000 times"], ans:2},
+  {q:"What was the biggest improvement in Fast R-CNN?", opts:["It uses RPN","It runs the CNN only once on the whole image","It doesn't need a CNN","It uses Sliding Window"], ans:1},
+  {q:"What did Faster R-CNN introduce to replace Selective Search?", opts:["Sliding Window","Random Search","Region Proposal Network (RPN)","Google Search"], ans:2}
+];
+
+/* ═══════════════════════════════════════════
+   STATE
+   ═══════════════════════════════════════════ */
+let activeTab = 0, currentSection = 'learn', vizTimers = [];
+
+/* ═══════════════════════════════════════════
+   SECTION NAV
+   ═══════════════════════════════════════════ */
+function showSection(id) {
+  currentSection = id;
+  clearAllTimers();
+  const ids = ['learn','race','quiz'];
+  document.querySelectorAll('.section-btn').forEach((b,i) => b.classList.toggle('active', ids[i]===id));
+  ids.forEach(s => document.getElementById('sec-'+s).classList.toggle('hidden', s!==id));
+  if (id==='race') buildRace();
+  if (id==='quiz') buildQuiz();
+}
+
+/* ═══════════════════════════════════════════
+   LEARN
+   ═══════════════════════════════════════════ */
+function buildTabs() {
+  document.getElementById('tabBar').innerHTML = ALGOS.map((a,i) =>
+    `<button class="tab-btn" onclick="switchTab(${i})" style="${i===activeTab?'background:'+a.color+';color:#fff':''}">
+      <div class="icon">${a.icon}</div>
+      <div style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.name}</div>
+      <div class="year">${a.year}</div>
+    </button>`
+  ).join('');
+}
+
+function switchTab(i) { clearAllTimers(); activeTab=i; buildTabs(); buildCard(); }
+
+function buildCard() {
+  const a = ALGOS[activeTab];
+  document.getElementById('algoCard').innerHTML = `
+    <div class="card" style="animation:fadeIn 0.35s">
+      <div style="background:linear-gradient(135deg,${a.color}15,${a.accent});padding:24px 24px 16px;border-bottom:3px solid ${a.color}25">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
+          <span style="font-size:36px">${a.icon}</span>
+          <div>
+            <h2 style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:900;color:#222">${a.name}</h2>
+            <div style="font-size:13px;font-weight:700;font-family:'DM Mono',monospace;color:${a.color}">${a.year} · ${a.speed} / image</div>
+          </div>
+        </div>
+        <div style="font-size:16px;color:#444;font-weight:700;line-height:1.4;margin-top:4px">${a.tagline}</div>
+      </div>
+      <div style="padding:16px 24px;background:${a.color}08;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:12px;color:${a.color};font-weight:700;margin-bottom:4px;font-family:'DM Mono',monospace">💡 Real-Life Analogy</div>
+        <p style="font-size:14px;color:#555;line-height:1.5">${a.analogy}</p>
+      </div>
+      <div style="padding:20px 16px;border-bottom:1px solid #f0f0f0;display:flex;justify-content:center">
+        <div id="vizContainer" style="display:flex;flex-direction:column;align-items:center;gap:12px"></div>
+      </div>
+      <div style="padding:16px 24px;border-bottom:1px solid #f0f0f0">
+        <div style="font-size:12px;color:#888;font-weight:700;margin-bottom:10px;font-family:'DM Mono',monospace">⚙️ How It Works</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${a.steps.map((s,i) => `
+            <div style="display:flex;gap:10px;align-items:flex-start;animation:slideIn 0.3s ${i*0.05}s both">
+              <div style="width:24px;height:24px;border-radius:50%;background:${a.color};color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">${i+1}</div>
+              <div style="font-size:14px;color:#444;line-height:1.5;padding-top:2px">${s}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div style="padding:16px 24px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;border-bottom:1px solid #f0f0f0">
+        ${[{l:"CNN Runs",v:a.cnnRuns},{l:"Region Method",v:a.regionMethod},{l:"End-to-End?",v:a.trainable}].map(s =>
+          `<div style="background:#f8f8f8;border-radius:10px;padding:10px 12px;text-align:center">
+            <div style="font-size:10px;color:#999;margin-bottom:4px;font-family:'DM Mono',monospace">${s.l}</div>
+            <div style="font-size:13px;font-weight:700;color:#333;line-height:1.3">${s.v}</div>
+          </div>`
+        ).join('')}
+      </div>
+      <div style="padding:16px 24px;display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <div style="font-size:12px;color:#2ECC71;font-weight:700;margin-bottom:6px;font-family:'DM Mono',monospace">✅ Pros</div>
+          ${a.pros.map(p => `<div style="font-size:13px;color:#444;margin-bottom:4px;padding-left:14px;position:relative;line-height:1.4"><span style="position:absolute;left:0;color:#2ECC71">•</span>${p}</div>`).join('')}
+        </div>
+        <div>
+          <div style="font-size:12px;color:#E74C3C;font-weight:700;margin-bottom:6px;font-family:'DM Mono',monospace">❌ Cons</div>
+          ${a.cons.map(c => `<div style="font-size:13px;color:#444;margin-bottom:4px;padding-left:14px;position:relative;line-height:1.4"><span style="position:absolute;left:0;color:#E74C3C">•</span>${c}</div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  buildViz();
+  const evo = document.getElementById('nextEvo');
+  if (activeTab < 3) {
+    const n = ALGOS[activeTab+1];
+    evo.innerHTML = `<button class="next-evo-btn" style="border:2px solid ${n.color};color:${n.color}" onclick="switchTab(${activeTab+1})">See next evolution → ${n.name} ${n.icon}</button>`;
+  } else { evo.innerHTML = ''; }
+}
+
+/* ═══════════════════════════════════════════
+   VISUALIZATIONS
+   ═══════════════════════════════════════════ */
+function clearAllTimers() { vizTimers.forEach(t=>clearInterval(t)); vizTimers=[]; }
+
+function emojiHTML(scale) {
+  return OBJECTS.map(o => `<div style="position:absolute;left:${o.x}%;top:${o.y}%;font-size:${Math.min(o.w,o.h)*1.6*scale}px;line-height:1;z-index:3;filter:drop-shadow(1px 1px 2px rgba(0,0,0,0.3))">${o.emoji}</div>`).join('');
+}
+
+function buildViz() {
+  const c = document.getElementById('vizContainer');
+  if (!c) return;
+  [vizSliding, vizRCNN, vizFast, vizFaster][activeTab](c);
+}
+
+/* ── Sliding Window ── */
+function vizSliding(ct) {
+  const cols=5, rows=4, cellW=100/cols, cellH=100/rows;
+  let col=0, row=0, found=[], running=false, done=false;
+
+  function render() {
+    let grid='';
+    for(let r=0;r<rows;r++) for(let c=0;c<cols;c++) {
+      const act = running&&c===col&&r===row;
+      const past = running?(r<row||(r===row&&c<col)):done;
+      grid += `<div style="position:absolute;left:${c*cellW}%;top:${r*cellH}%;width:${cellW}%;height:${cellH}%;border:1px dashed rgba(0,0,0,0.15);background:${act?'rgba(231,76,60,0.35)':past?'rgba(231,76,60,0.08)':'transparent'};z-index:2;box-sizing:border-box;transition:background 0.2s"></div>`;
+    }
+    const scan = running ? `<div style="position:absolute;left:${col*cellW}%;top:${row*cellH}%;width:${cellW}%;height:${cellH}%;border:3px solid #E74C3C;border-radius:3px;z-index:5;transition:left 0.25s,top 0.25s;box-shadow:0 0 12px rgba(231,76,60,0.5)"></div>` : '';
+    const boxes = found.map(o=>`<div style="position:absolute;left:${o.x-2}%;top:${o.y-2}%;width:${o.w+4}%;height:${o.h+4}%;border:2.5px solid #E74C3C;border-radius:4px;z-index:4;background:rgba(231,76,60,0.1)"></div>`).join('');
+    const msg = running?`Scanning... cell ${row*cols+col+1}/${cols*rows}`:done?`Done! Scanned all ${cols*rows} cells, found ${found.length} objects`:'Each cell requires a full CNN classification pass';
+    ct.innerHTML = `
+      <div class="scene">${emojiHTML(1)}${grid}${scan}${boxes}</div>
+      <div style="display:flex;gap:8px">
+        <button class="action-btn" style="background:${running?'#ccc':'#E74C3C'}" ${running?'disabled':''} onclick="window._vs()">${done?'▶ Restart':'▶ Start Scanning'}</button>
+        ${running?'<button class="action-btn" style="background:#fff;color:#333;border:1px solid #ccc" onclick="window._vx()">⏹ Stop</button>':''}
+      </div>
+      <p style="font-size:13px;color:#888;text-align:center">${msg}</p>`;
+  }
+
+  window._vx = () => { clearAllTimers(); running=false; done=false; col=row=0; found=[]; render(); };
+  window._vs = () => {
+    clearAllTimers(); col=row=0; found=[]; done=false; running=true;
+    const fs=[];
+    const t=setInterval(()=>{
+      const wx=col*cellW, wy=row*cellH;
+      OBJECTS.forEach(o=>{if(o.x+o.w>wx&&o.x<wx+cellW&&o.y+o.h>wy&&o.y<wy+cellH&&!fs.find(f=>f.label===o.label)) fs.push({...o});});
+      found=[...fs]; render();
+      col++; if(col>=cols){col=0;row++;} if(row>=rows){clearInterval(t);running=false;done=true;render();}
+    },300);
+    vizTimers.push(t); render();
+  };
+  render();
+}
+
+/* ── R-CNN ── */
+function vizRCNN(ct) {
+  const props=[
+    {x:5,y:15,w:28,h:55,hasObj:true,label:"Person"},{x:38,y:28,w:34,h:34,hasObj:true,label:"Car"},
+    {x:72,y:7,w:22,h:26,hasObj:true,label:"Bird"},{x:55,y:60,w:20,h:25,hasObj:false},
+    {x:10,y:70,w:25,h:20,hasObj:false},{x:80,y:50,w:15,h:30,hasObj:false}
+  ];
+  let step=0,cls=0;
+
+  function render() {
+    let ph='';
+    if(step>=1) props.forEach((p,i)=>{
+      const ic=step===2&&i<cls, ig=ic&&p.hasObj, ib=ic&&!p.hasObj, op=(step===3&&!p.hasObj)?0:1;
+      ph+=`<div style="position:absolute;left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%;border:${ig?'2.5px solid #E67E22':ib?'2px dashed rgba(200,0,0,0.3)':'2px dashed rgba(230,126,34,0.5)'};border-radius:4px;z-index:4;background:${ig?'rgba(230,126,34,0.15)':'transparent'};transition:all 0.3s;opacity:${op}"></div>`;
+    });
+    let lh='';
+    if(step===3) props.filter(p=>p.hasObj).forEach(p=>{lh+=`<div style="position:absolute;left:${p.x}%;top:${p.y-6}%;background:#E67E22;color:#fff;font-size:11px;padding:1px 6px;border-radius:4px;z-index:6;font-weight:700">${p.label}</div>`;});
+    const msgs=['First find candidate regions with Selective Search, then classify each','Step 1: Selective Search found 6 candidate regions',`Step 2: Feeding each region into CNN... (${cls}/${props.length})`,'Done! Each region ran through CNN separately — very slow! 😰'];
+    ct.innerHTML=`
+      <div class="scene">${emojiHTML(1)}${ph}${lh}</div>
+      <button class="action-btn" style="background:${step>0&&step<3?'#ccc':'#E67E22'}" ${step>0&&step<3?'disabled':''} onclick="window._vs()">${step===3?'▶ Restart':'▶ Start Detection'}</button>
+      <p style="font-size:13px;color:#888;text-align:center">${msgs[step]}</p>`;
+  }
+
+  window._vs = () => {
+    clearAllTimers(); step=0;cls=0; let s=0;
+    const t=setInterval(()=>{s++;if(s===1)step=1;else if(s<=1+props.length){step=2;cls=s-1;}else{step=3;clearInterval(t);}render();},600);
+    vizTimers.push(t);
+  };
+  render();
+}
+
+/* ── Fast R-CNN ── */
+function vizFast(ct) {
+  let step=0;
+  function render() {
+    const oe=OBJECTS.map(o=>`<div style="position:absolute;left:${o.x}%;top:${o.y}%;font-size:${Math.min(o.w,o.h)*0.8}px;line-height:1;z-index:3">${o.emoji}</div>`).join('');
+    const blobs=OBJECTS.map(o=>`<div style="position:absolute;left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%;background:rgba(46,204,113,0.3);border:1.5px solid rgba(46,204,113,0.6);border-radius:3px;z-index:3"></div>`).join('');
+    let rois='';
+    if(step>=2)[{x:5,y:15,w:28,h:55},{x:38,y:28,w:34,h:34},{x:72,y:7,w:22,h:26},{x:55,y:60,w:20,h:25}].forEach(p=>{
+      rois+=`<div style="position:absolute;left:${p.x}%;top:${p.y}%;width:${p.w}%;height:${p.h}%;border:2px dashed rgba(230,126,34,0.7);border-radius:3px;z-index:5"></div>`;
+    });
+    const arrow=step>=1?'<div style="font-size:22px;color:#2ECC71">→</div>':'';
+    const fmap=step>=1?`<div style="display:flex;flex-direction:column;align-items:center;gap:4px;animation:fadeIn 0.3s">
+      <div style="font-size:9px;color:#888;font-weight:600">CNN (once)</div>
+      <div class="mini-scene" style="width:130px;height:105px;background:linear-gradient(135deg,#a8e6cf,#88d8b0);border:2px solid #2ECC71;filter:hue-rotate(40deg) saturate(1.8) contrast(1.2)">
+        <div style="position:absolute;top:4px;left:4px;font-size:9px;background:rgba(0,0,0,0.5);color:#fff;padding:1px 5px;border-radius:4px;z-index:10">Feature Map</div>
+        ${blobs}${rois}
+      </div></div>`:'';
+    const res=step>=3?`<div style="display:flex;gap:6px;animation:fadeIn 0.3s">${OBJECTS.map(o=>`<div style="background:#D5F5E3;border:2px solid #2ECC71;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1a7a42">${o.emoji} ${o.label}</div>`).join('')}</div>`:'';
+    const msgs=['Entire image passes through CNN just once! Regions found on feature map','Step 1: Entire image → CNN → Feature Map','Step 2: Selective Search finds regions on the feature map','Step 3: ROI Pooling + Classification (super fast!)','Done! CNN ran only once ⚡ But region proposals still use traditional methods...'];
+    ct.innerHTML=`
+      <div style="display:flex;gap:12px;align-items:center">
+        <div class="mini-scene" style="width:130px;height:105px;background:linear-gradient(135deg,#f8f4e8,#e8e0d0);border:2px solid #ccc">
+          <div style="position:absolute;top:4px;left:4px;font-size:9px;background:rgba(0,0,0,0.5);color:#fff;padding:1px 5px;border-radius:4px;z-index:10">Original</div>${oe}
+        </div>${arrow}${fmap}
+      </div>${res}
+      <button class="action-btn" style="background:${step>0&&step<4?'#ccc':'#2ECC71'}" ${step>0&&step<4?'disabled':''} onclick="window._vs()">${step>=4?'▶ Restart':'▶ Start Detection'}</button>
+      <p style="font-size:13px;color:#888;text-align:center">${msgs[step]}</p>`;
+  }
+
+  window._vs = () => {
+    clearAllTimers();step=0;let s=0;
+    const t=setInterval(()=>{s++;step=s;if(s>=4)clearInterval(t);render();},900);
+    vizTimers.push(t);render();
+  };
+  render();
+}
+
+/* ── Faster R-CNN ── */
+function vizFaster(ct) {
+  let step=0;
+  function render() {
+    const se=OBJECTS.map(o=>`<div style="position:absolute;left:${o.x}%;top:${o.y}%;font-size:${Math.min(o.w,o.h)*0.7}px;line-height:1;z-index:3">${o.emoji}</div>`).join('');
+    const sb=OBJECTS.map(o=>`<div style="position:absolute;left:${o.x}%;top:${o.y}%;width:${o.w}%;height:${o.h}%;background:rgba(52,152,219,0.25);border:1.5px solid rgba(52,152,219,0.5);border-radius:3px;z-index:3"></div>`).join('');
+    const rb=OBJECTS.map(o=>`<div style="position:absolute;left:${o.x-2}%;top:${o.y-2}%;width:${o.w+4}%;height:${o.h+4}%;border:2.5px solid #E74C3C;border-radius:4px;z-index:5;background:rgba(231,76,60,0.1)"></div>`).join('');
+
+    let panels=`<div class="mini-scene" style="width:120px;height:100px;background:linear-gradient(135deg,#f8f4e8,#e8e0d0);border:2px solid #ccc">
+      <div style="position:absolute;top:3px;left:3px;font-size:8px;background:rgba(0,0,0,0.5);color:#fff;padding:1px 4px;border-radius:4px;z-index:10">Original</div>${se}</div>`;
+    if(step>=1) panels+=`<div style="font-size:20px;color:#3498DB">→</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;animation:fadeIn 0.3s">
+        <div style="font-size:8px;color:#888;font-weight:600">CNN</div>
+        <div class="mini-scene" style="width:120px;height:100px;background:linear-gradient(135deg,#a8d8ea,#88c8e0);border:2px solid #3498DB">
+          <div style="position:absolute;top:3px;left:3px;font-size:8px;background:rgba(0,0,0,0.5);color:#fff;padding:1px 4px;border-radius:4px;z-index:10">Feature Map</div>${sb}
+        </div></div>`;
+    if(step>=2) panels+=`<div style="font-size:20px;color:#3498DB">→</div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:3px;animation:fadeIn 0.3s">
+        <div style="font-size:8px;color:#E74C3C;font-weight:700">🧠 RPN</div>
+        <div class="mini-scene" style="width:120px;height:100px;background:linear-gradient(135deg,#d6eaf8,#aed6f1);border:2px dashed #E74C3C">
+          <div style="position:absolute;top:3px;left:3px;font-size:8px;background:rgba(231,76,60,0.8);color:#fff;padding:1px 4px;border-radius:4px;z-index:10">NN Proposals</div>${rb}
+        </div></div>`;
+    const res=step>=3?`<div style="display:flex;gap:6px;animation:fadeIn 0.3s">${OBJECTS.map(o=>`<div style="background:#D6EAF8;border:2px solid #3498DB;border-radius:8px;padding:6px 10px;font-size:12px;font-weight:700;color:#1a5276">${o.emoji} ${o.label} <span style="font-size:10px;opacity:0.7">97%</span></div>`).join('')}</div>`:'';
+    const msgs=['Everything is a neural network — including region proposals!','Step 1: Entire image → CNN → Feature Map','Step 2: 🧠 RPN (neural network) automatically finds candidate regions!','Step 3: Classify + precise localization → Done!','Done! Fully neural, ~0.2 seconds 🚀'];
+    ct.innerHTML=`
+      <div style="display:flex;gap:10px;align-items:center;overflow-x:auto;padding:4px">${panels}</div>${res}
+      <button class="action-btn" style="background:${step>0&&step<4?'#ccc':'#3498DB'}" ${step>0&&step<4?'disabled':''} onclick="window._vs()">${step>=4?'▶ Restart':'▶ Start Detection'}</button>
+      <p style="font-size:13px;color:#888;text-align:center">${msgs[step]}</p>`;
+  }
+
+  window._vs = () => {
+    clearAllTimers();step=0;let s=0;
+    const t=setInterval(()=>{s++;step=s;if(s>=4)clearInterval(t);render();},800);
+    vizTimers.push(t);render();
+  };
+  render();
+}
+
+/* ═══════════════════════════════════════════
+   SPEED RACE
+   ═══════════════════════════════════════════ */
+const RACE_SPEEDS=[0.4,1.2,12,100], RACE_TIMES=["~100s+","~40s","~2s","~0.2s"];
+let raceP=[0,0,0,0], raceOn=false;
+
+function buildRace(){ raceP=[0,0,0,0]; raceOn=false; renderRace(); }
+
+function renderRace(){
+  document.getElementById('raceArea').innerHTML=ALGOS.map((a,i)=>`
+    <div class="race-row">
+      <div class="race-label" style="color:${a.color}">${a.name}</div>
+      <div class="race-track">
+        <div class="race-fill" style="width:${raceP[i]}%;background:linear-gradient(90deg,${a.color}dd,${a.color})">
+          ${raceP[i]>=100?'<span style="font-size:11px;color:#fff;font-weight:700;padding-right:4px">✓</span>':''}
+        </div>
+        ${raceP[i]>=100?`<div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:11px;font-weight:700;color:${a.color};font-family:'DM Mono',monospace">${RACE_TIMES[i]}</div>`:''}
+      </div>
+    </div>`).join('');
+  const b=document.getElementById('raceBtn');
+  b.disabled=raceOn;
+  b.textContent=(!raceOn&&raceP[3]>=100)?'🏁 Race Again!':'🏁 Start Race!';
+}
+
+function startRace(){
+  clearAllTimers(); raceP=[0,0,0,0]; raceOn=true; renderRace();
+  const t=setInterval(()=>{
+    let done=true;
+    for(let i=0;i<4;i++){raceP[i]=Math.min(100,raceP[i]+RACE_SPEEDS[i]);if(raceP[i]<100)done=false;}
+    renderRace();
+    if(done){clearInterval(t);raceOn=false;renderRace();}
+  },50);
+  vizTimers.push(t);
+}
+
+/* ═══════════════════════════════════════════
+   QUIZ
+   ═══════════════════════════════════════════ */
+let qIdx=0, qSel=null, qScore=0, qDone=false;
+
+function buildQuiz(){ qIdx=0;qSel=null;qScore=0;qDone=false; renderQuiz(); }
+
+function renderQuiz(){
+  const area=document.getElementById('quizArea');
+  if(qDone){
+    const e=qScore===QUIZ_DATA.length?'🎉':qScore>=QUIZ_DATA.length/2?'👍':'📚';
+    const m=qScore===QUIZ_DATA.length?'Amazing! Perfect score!':'Review the evolution and try again!';
+    area.innerHTML=`<div style="text-align:center;padding:20px">
+      <div style="font-size:48px;margin-bottom:8px">${e}</div>
+      <div style="font-size:20px;font-weight:700;color:#333;font-family:'Outfit',sans-serif">${qScore} / ${QUIZ_DATA.length} Correct!</div>
+      <p style="color:#888;font-size:14px;margin-top:6px">${m}</p>
+      <button class="action-btn" style="background:#333;margin-top:12px" onclick="buildQuiz()">🔄 Try Again</button>
+    </div>`;
+    return;
+  }
+  const q=QUIZ_DATA[qIdx];
+  area.innerHTML=`
+    <div style="font-size:12px;color:#888;margin-bottom:6px;font-family:'DM Mono',monospace">Question ${qIdx+1} / ${QUIZ_DATA.length}</div>
+    <div style="font-size:16px;font-weight:700;color:#222;margin-bottom:16px;line-height:1.5">${q.q}</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${q.opts.map((o,i)=>{
+        let s='';
+        if(qSel!==null){
+          if(i===q.ans) s='background:#d5f5e3;border-color:#2ECC71;color:#1a7a42;cursor:default;';
+          else if(i===qSel) s='background:#fadbd8;border-color:#E74C3C;color:#c0392b;cursor:default;';
+          else s='cursor:default;';
+        }
+        const pfx=qSel!==null?(i===q.ans?'✅ ':(i===qSel?'❌ ':'')):'';
+        return `<button class="quiz-opt${qSel!==null?' locked':''}" style="${s}" onclick="qPick(${i})">${pfx}${o}</button>`;
+      }).join('')}
+    </div>
+    ${qSel!==null?`<div style="margin-top:12px;text-align:right">
+      <button class="action-btn" style="background:#333" onclick="qNext()">${qIdx<QUIZ_DATA.length-1?'Next →':'See Results →'}</button>
+    </div>`:''}`;
+}
+
+function qPick(i){if(qSel!==null)return;qSel=i;if(i===QUIZ_DATA[qIdx].ans)qScore++;renderQuiz();}
+function qNext(){if(qIdx<QUIZ_DATA.length-1){qIdx++;qSel=null;}else qDone=true;renderQuiz();}
+
+/* ═══════════════════════════════════════════
+   INIT
+   ═══════════════════════════════════════════ */
+buildTabs();
+buildCard();
+</script>
+</body>
+</html>
